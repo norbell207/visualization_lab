@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Task 3 - Heatmap Thời tiết</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .controls { margin-bottom: 20px; }
+        .heatmap-rect { stroke: #eee; }
+        .heatmap-rect:hover { stroke: #333; stroke-width: 2px; cursor: pointer; }
+        #tooltip { position: absolute; background: rgba(0,0,0,0.8); color: #fff; padding: 8px; border-radius: 4px; opacity: 0; pointer-events: none; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <label><strong>Lọc Vùng:</strong></label>
+        <select id="regionFilter">
+            <option value="All">-- Tất cả các vùng --</option>
+            <option value="Đồng Bằng Sông Cửu Long">Đồng Bằng Sông Cửu Long</option>
+            <option value="Đông Nam Bộ">Đông Nam Bộ</option>
+            <option value="Trung du và miền núi Bắc Bộ">Trung du và miền núi Bắc Bộ</option>
+            <option value="Đồng Bằng Sông Hồng">Đồng Bằng Sông Hồng</option>
+            <option value="Bắc Trung Bộ và Duyên hải miền Trung">Bắc Trung Bộ và Duyên hải miền Trung</option>
+            <option value="Tây Nguyên">Tây Nguyên</option>
+        </select>
+    </div>
+    <div id="chart"></div>
+    <div id="tooltip"></div>
+
+    <script>
+        const task3Data = [
+            {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "Mưa rào", "count": 1380}, {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "Mưa vừa", "count": 586}, {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "U ám", "count": 558}, {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "Có mây", "count": 245}, {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "Mưa rải rác", "count": 1570},
+            {"region": "Trung du và miền núi Bắc Bộ", "condition": "Mưa rào", "count": 1254}, {"region": "Trung du và miền núi Bắc Bộ", "condition": "Mưa vừa", "count": 471}, {"region": "Trung du và miền núi Bắc Bộ", "condition": "U ám", "count": 825}, {"region": "Trung du và miền núi Bắc Bộ", "condition": "Có mây", "count": 468}, {"region": "Trung du và miền núi Bắc Bộ", "condition": "Mưa rải rác", "count": 1413},
+            {"region": "Tây Nguyên", "condition": "Mưa rào", "count": 564}, {"region": "Tây Nguyên", "condition": "Mưa vừa", "count": 184}, {"region": "Tây Nguyên", "condition": "U ám", "count": 197}, {"region": "Tây Nguyên", "condition": "Có mây", "count": 185}, {"region": "Tây Nguyên", "condition": "Mưa rải rác", "count": 413},
+            {"region": "Đông Nam Bộ", "condition": "Mưa rào", "count": 897}, {"region": "Đông Nam Bộ", "condition": "Mưa vừa", "count": 179}, {"region": "Đông Nam Bộ", "condition": "U ám", "count": 128}, {"region": "Đông Nam Bộ", "condition": "Có mây", "count": 241}, {"region": "Đông Nam Bộ", "condition": "Mưa rải rác", "count": 469},
+            {"region": "Đồng Bằng Sông Cửu Long", "condition": "Mưa rào", "count": 2217}, {"region": "Đồng Bằng Sông Cửu Long", "condition": "Mưa vừa", "count": 336}, {"region": "Đồng Bằng Sông Cửu Long", "condition": "U ám", "count": 249}, {"region": "Đồng Bằng Sông Cửu Long", "condition": "Có mây", "count": 455}, {"region": "Đồng Bằng Sông Cửu Long", "condition": "Mưa rải rác", "count": 1056},
+            {"region": "Đồng Bằng Sông Hồng", "condition": "Mưa rào", "count": 968}, {"region": "Đồng Bằng Sông Hồng", "condition": "Mưa vừa", "count": 313}, {"region": "Đồng Bằng Sông Hồng", "condition": "U ám", "count": 682}, {"region": "Đồng Bằng Sông Hồng", "condition": "Có mây", "count": 375}, {"region": "Đồng Bằng Sông Hồng", "condition": "Mưa rải rác", "count": 1141}
+        ];
+
+        const margin = {top: 20, right: 20, bottom: 80, left: 80}, width = 700 - margin.left - margin.right, height = 350 - margin.top - margin.bottom;
+        const svg = d3.select("#chart").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom).append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        
+        const x = d3.scaleBand().range([0, width]).padding(0.05);
+        const y = d3.scaleBand().range([height, 0]).padding(0.05);
+        const color = d3.scaleSequential().interpolator(d3.interpolatePuBu);
+        const xAxis = svg.append("g").attr("transform", `translate(0,${height})`);
+        const yAxis = svg.append("g");
+        const tooltip = d3.select("#tooltip");
+
+        function drawChart(data) {
+            const conditions = Array.from(new Set(task3Data.map(d => d.condition)));
+            x.domain(data.map(d => d.region)); y.domain(conditions); color.domain([0, d3.max(task3Data, d => d.count)]);
+            
+            xAxis.transition().duration(500).call(d3.axisBottom(x)).selectAll("text").attr("transform", "translate(-10,10)rotate(-20)").style("text-anchor", "end");
+            yAxis.transition().duration(500).call(d3.axisLeft(y));
+
+            const squares = svg.selectAll(".heatmap-rect").data(data, d => d.region + ':' + d.condition);
+            squares.exit().remove();
+            squares.enter().append("rect").attr("class", "heatmap-rect")
+                .attr("x", d => x(d.region)).attr("y", d => y(d.condition)).attr("width", x.bandwidth()).attr("height", y.bandwidth())
+                .on("mouseover", (event, d) => { tooltip.transition().duration(200).style("opacity", 1); tooltip.html(`<strong>${d.region}</strong><br>${d.condition}: ${d.count} ngày`).style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 20) + "px"); })
+                .on("mouseout", () => tooltip.style("opacity", 0))
+                .merge(squares).transition().duration(800)
+                .attr("x", d => x(d.region)).style("fill", d => color(d.count));
+        }
+
+        d3.select("#regionFilter").on("change", function() {
+            const val = d3.select(this).property("value");
+            drawChart(val === "All" ? task3Data : task3Data.filter(d => d.region === val));
+        });
+        drawChart(task3Data);
+    </script>
+</body>
+</html>
