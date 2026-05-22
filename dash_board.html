@@ -2,18 +2,59 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Tổng Hợp</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
-        h1 { text-align: center; color: #1a202c; }
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f0f2f5; 
+            margin: 0; 
+            padding: 15px 25px; 
+        }
         
-        .card { background: #fff; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 15px; }
-        .card-full { grid-column: 1 / -1; } /* Chiếm toàn bộ chiều ngang */
+        h1 { 
+            text-align: center; 
+            color: #1a202c; 
+            margin-top: 10px;
+            margin-bottom: 25px; 
+        }
         
-        iframe { width: 100%; border: none; border-radius: 8px; }
-        .frame-small { height: 450px; }
-        .frame-large { height: 550px; }
+        .dashboard-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 25px; 
+            max-width: 100%; 
+            margin: 0 auto; 
+        }
+        
+        .card { 
+            background: #fff; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            padding: 10px; 
+        }
+        
+        /* Đưa thẻ Task 3 vào chính giữa màn hình */
+        .card-full { 
+            grid-column: 1 / -1; 
+            justify-self: center; /* Căn giữa toàn bộ thẻ */
+            width: 100%; 
+            max-width: 900px; /* Khóa độ rộng ôm vừa khít Heatmap */
+        }
+        
+        iframe { 
+            width: 100%; 
+            border: none; 
+            border-radius: 8px; 
+        }
+        
+        .task-top { 
+            height: 550px; 
+        } 
+        
+        .task-bottom { 
+            height: 650px; 
+        } 
     </style>
 </head>
 <body>
@@ -22,15 +63,15 @@
 
     <div class="dashboard-grid">
         <div class="card">
-            <iframe src="task2.html" class="frame-small"></iframe>
+            <iframe src="task2.html" class="task-top"></iframe>
         </div>
 
         <div class="card">
-            <iframe src="task3.html" class="frame-small"></iframe>
+            <iframe src="task5.html" class="task-top"></iframe>
         </div>
 
         <div class="card card-full">
-            <iframe src="task5.html" class="frame-large"></iframe>
+            <iframe src="task3.html" class="task-bottom"></iframe>
         </div>
     </div>
 

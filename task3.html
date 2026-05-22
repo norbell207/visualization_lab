@@ -5,71 +5,96 @@
     <title>Task 3 - Heatmap Thời tiết</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; }
-        .controls { margin-bottom: 20px; }
-        .heatmap-rect { stroke: #eee; }
-        .heatmap-rect:hover { stroke: #333; stroke-width: 2px; cursor: pointer; }
-        #tooltip { position: absolute; background: rgba(0,0,0,0.8); color: #fff; padding: 8px; border-radius: 4px; opacity: 0; pointer-events: none; font-size: 13px; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f5f5f5; }
+        .chart-box { background-color: #fff; padding: 20px; border-radius: 10px; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .heatmap-rect { stroke: #e2e8f0; cursor: pointer; }
+        .heatmap-rect:hover { stroke: #333; stroke-width: 2px; }
+        .tooltip { position: absolute; background: #333; color: #fff; padding: 5px 10px; border-radius: 4px; pointer-events: none; font-size: 12px; opacity: 0; }
+        .filter-container { margin-bottom: 20px; }
     </style>
 </head>
 <body>
-    <div class="controls">
-        <label><strong>Lọc Vùng:</strong></label>
-        <select id="regionFilter">
-            <option value="All">-- Tất cả các vùng --</option>
-            <option value="Đồng Bằng Sông Cửu Long">Đồng Bằng Sông Cửu Long</option>
-            <option value="Đông Nam Bộ">Đông Nam Bộ</option>
-            <option value="Trung du và miền núi Bắc Bộ">Trung du và miền núi Bắc Bộ</option>
-            <option value="Đồng Bằng Sông Hồng">Đồng Bằng Sông Hồng</option>
-            <option value="Bắc Trung Bộ và Duyên hải miền Trung">Bắc Trung Bộ và Duyên hải miền Trung</option>
-            <option value="Tây Nguyên">Tây Nguyên</option>
-        </select>
+    <div class="chart-box">
+        <h2>Tần suất thời tiết (Heatmap)</h2>
+        <div class="filter-container">
+            <label>Chọn Vùng: </label>
+            <select id="regionFilter"></select>
+        </div>
+        <svg id="heatMap" width="800" height="400"></svg>
     </div>
-    <div id="chart"></div>
-    <div id="tooltip"></div>
+    <div class="tooltip" id="tooltip"></div>
 
     <script>
-        const task3Data = [
-            {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "Mưa rào", "count": 1380}, {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "Mưa vừa", "count": 586}, {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "U ám", "count": 558}, {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "Có mây", "count": 245}, {"region": "Bắc Trung Bộ và Duyên hải miền Trung", "condition": "Mưa rải rác", "count": 1570},
-            {"region": "Trung du và miền núi Bắc Bộ", "condition": "Mưa rào", "count": 1254}, {"region": "Trung du và miền núi Bắc Bộ", "condition": "Mưa vừa", "count": 471}, {"region": "Trung du và miền núi Bắc Bộ", "condition": "U ám", "count": 825}, {"region": "Trung du và miền núi Bắc Bộ", "condition": "Có mây", "count": 468}, {"region": "Trung du và miền núi Bắc Bộ", "condition": "Mưa rải rác", "count": 1413},
-            {"region": "Tây Nguyên", "condition": "Mưa rào", "count": 564}, {"region": "Tây Nguyên", "condition": "Mưa vừa", "count": 184}, {"region": "Tây Nguyên", "condition": "U ám", "count": 197}, {"region": "Tây Nguyên", "condition": "Có mây", "count": 185}, {"region": "Tây Nguyên", "condition": "Mưa rải rác", "count": 413},
-            {"region": "Đông Nam Bộ", "condition": "Mưa rào", "count": 897}, {"region": "Đông Nam Bộ", "condition": "Mưa vừa", "count": 179}, {"region": "Đông Nam Bộ", "condition": "U ám", "count": 128}, {"region": "Đông Nam Bộ", "condition": "Có mây", "count": 241}, {"region": "Đông Nam Bộ", "condition": "Mưa rải rác", "count": 469},
-            {"region": "Đồng Bằng Sông Cửu Long", "condition": "Mưa rào", "count": 2217}, {"region": "Đồng Bằng Sông Cửu Long", "condition": "Mưa vừa", "count": 336}, {"region": "Đồng Bằng Sông Cửu Long", "condition": "U ám", "count": 249}, {"region": "Đồng Bằng Sông Cửu Long", "condition": "Có mây", "count": 455}, {"region": "Đồng Bằng Sông Cửu Long", "condition": "Mưa rải rác", "count": 1056},
-            {"region": "Đồng Bằng Sông Hồng", "condition": "Mưa rào", "count": 968}, {"region": "Đồng Bằng Sông Hồng", "condition": "Mưa vừa", "count": 313}, {"region": "Đồng Bằng Sông Hồng", "condition": "U ám", "count": 682}, {"region": "Đồng Bằng Sông Hồng", "condition": "Có mây", "count": 375}, {"region": "Đồng Bằng Sông Hồng", "condition": "Mưa rải rác", "count": 1141}
-        ];
+        async function drawHeatMap() {
+            const rawData = await d3.csv("df_weather_fixed_utf8_cleaned.csv");
 
-        const margin = {top: 20, right: 20, bottom: 80, left: 80}, width = 700 - margin.left - margin.right, height = 350 - margin.top - margin.bottom;
-        const svg = d3.select("#chart").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom).append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-        
-        const x = d3.scaleBand().range([0, width]).padding(0.05);
-        const y = d3.scaleBand().range([height, 0]).padding(0.05);
-        const color = d3.scaleSequential().interpolator(d3.interpolatePuBu);
-        const xAxis = svg.append("g").attr("transform", `translate(0,${height})`);
-        const yAxis = svg.append("g");
-        const tooltip = d3.select("#tooltip");
+            // 1. Lọc lấy 5 loại thời tiết phổ biến nhất để Heatmap không bị quá dài
+            const counts = d3.rollup(rawData, v => v.length, d => d['day.condition.text']);
+            const topConditions = Array.from(counts).sort((a,b) => b[1] - a[1]).slice(0, 5).map(d => d[0]);
 
-        function drawChart(data) {
-            const conditions = Array.from(new Set(task3Data.map(d => d.condition)));
-            x.domain(data.map(d => d.region)); y.domain(conditions); color.domain([0, d3.max(task3Data, d => d.count)]);
+            // 2. Gom nhóm dữ liệu theo Vùng và Thời tiết
+            const grouped = d3.rollup(rawData.filter(d => topConditions.includes(d['day.condition.text'])), 
+                v => v.length, 
+                d => d['location.region'], 
+                d => d['day.condition.text']
+            );
+
+            // 3. Chuyển đổi dữ liệu sang dạng mảng để D3 vẽ
+            const heatData = [];
+            for (let [region, condMap] of grouped) {
+                for (let [cond, count] of condMap) {
+                    heatData.push({ region, cond, count });
+                }
+            }
+
+            // 4. Setup bộ lọc
+            const regions = ["Tất cả", ...new Set(rawData.map(d => d['location.region']))];
+            d3.select("#regionFilter").selectAll("option").data(regions).enter().append("option").text(d => d);
+
+            const svg = d3.select("#heatMap");
+            const width = 800, height = 300;
+            const margin = { top: 20, right: 20, bottom: 80, left: 150 };
             
-            xAxis.transition().duration(500).call(d3.axisBottom(x)).selectAll("text").attr("transform", "translate(-10,10)rotate(-20)").style("text-anchor", "end");
-            yAxis.transition().duration(500).call(d3.axisLeft(y));
+            const x = d3.scaleBand().range([margin.left, width - margin.right]).padding(0.05);
+            const y = d3.scaleBand().range([height - margin.bottom, margin.top]).padding(0.05);
+            const color = d3.scaleSequential(d3.interpolatePuBu).domain([0, d3.max(heatData, d => d.count)]);
 
-            const squares = svg.selectAll(".heatmap-rect").data(data, d => d.region + ':' + d.condition);
-            squares.exit().remove();
-            squares.enter().append("rect").attr("class", "heatmap-rect")
-                .attr("x", d => x(d.region)).attr("y", d => y(d.condition)).attr("width", x.bandwidth()).attr("height", y.bandwidth())
-                .on("mouseover", (event, d) => { tooltip.transition().duration(200).style("opacity", 1); tooltip.html(`<strong>${d.region}</strong><br>${d.condition}: ${d.count} ngày`).style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 20) + "px"); })
-                .on("mouseout", () => tooltip.style("opacity", 0))
-                .merge(squares).transition().duration(800)
-                .attr("x", d => x(d.region)).style("fill", d => color(d.count));
+            const tooltip = d3.select("#tooltip");
+
+            function update(selectedRegion) {
+                let displayData = selectedRegion === "Tất cả" ? heatData : heatData.filter(d => d.region === selectedRegion);
+                
+                x.domain(displayData.map(d => d.region));
+                y.domain(topConditions);
+
+                svg.selectAll("*").remove(); // Vẽ lại
+
+                svg.selectAll(".rect").data(displayData).enter().append("rect")
+                    .attr("class", "heatmap-rect")
+                    .attr("x", d => x(d.region)).attr("width", x.bandwidth())
+                    .attr("y", d => y(d.cond)).attr("height", y.bandwidth())
+                    .attr("fill", "#fff")
+                    .on("mouseover", function(event, d) {
+                        d3.select(this).style("stroke", "#000");
+                        tooltip.style("opacity", 1).html(`Vùng: ${d.region}<br>Thời tiết: ${d.cond}<br>Số ngày: <b>${d.count}</b>`);
+                    })
+                    .on("mousemove", event => tooltip.style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 20) + "px"))
+                    .on("mouseout", function() {
+                        d3.select(this).style("stroke", "#e2e8f0");
+                        tooltip.style("opacity", 0);
+                    })
+                    .transition().duration(800)
+                    .attr("fill", d => color(d.count));
+
+                svg.append("g").attr("transform", `translate(0,${height - margin.bottom})`)
+                    .call(d3.axisBottom(x)).selectAll("text").attr("transform", "rotate(-20)").style("text-anchor", "end");
+                svg.append("g").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(y));
+            }
+
+            d3.select("#regionFilter").on("change", function() { update(this.value); });
+            update("Tất cả");
         }
-
-        d3.select("#regionFilter").on("change", function() {
-            const val = d3.select(this).property("value");
-            drawChart(val === "All" ? task3Data : task3Data.filter(d => d.region === val));
-        });
-        drawChart(task3Data);
+        drawHeatMap();
     </script>
 </body>
 </html>
